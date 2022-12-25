@@ -24,9 +24,9 @@ func main() {
 	}
 
 	pu := parseUrls(urls)
-	for k, v := range pu {
-		createDirectoryIfNotExists(currentDir + "/" + k)
-		createFile(currentDir+"/"+k+"/"+k, v)
+	for dirName, sortedUrlsBySub := range pu {
+		createDirectoryIfNotExists(currentDir + "/" + dirName)
+		createFile(currentDir+"/"+dirName+"/"+dirName, sortedUrlsBySub)
 	}
 }
 
