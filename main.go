@@ -9,11 +9,13 @@ import (
 )
 
 var myflag = flag.Bool("c", false, "print whole url")
+var myflag2 = flag.String("d", "/js", "init files dir")
 
 func main() {
 	urls := make([]string, 0)
 	flag.Parse()
 	currentDir, err := os.Getwd()
+	createDirectoryIfNotExistsInit(currentDir + "/" + *myflag2)
 	if err != nil {
 		panic(err)
 	}
@@ -28,8 +30,8 @@ func main() {
 
 	pu := parseUrls(urls)
 	for dirName, sortedUrlsBySub := range pu {
-		createDirectoryIfNotExists(currentDir + "/" + dirName)
-		createFile(currentDir+"/"+dirName+"/"+dirName, sortedUrlsBySub)
+		createDirectoryIfNotExists(currentDir + "/" + *myflag2 + "/" + dirName)
+		createFile(currentDir+"/"+*myflag2+"/"+dirName+"/"+dirName, sortedUrlsBySub)
 	}
 }
 
@@ -65,4 +67,11 @@ func parseUrls(urls []string) map[string][]string {
 		}
 	}
 	return m
+}
+
+func createDirectoryIfNotExistsInit(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, os.ModeDir|0755)
+	}
+	return nil
 }
