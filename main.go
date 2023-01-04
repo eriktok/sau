@@ -2,14 +2,17 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"log"
 	"net/url"
 	"os"
 )
 
+var myflag = flag.Bool("c", false, "print whole url")
+
 func main() {
 	urls := make([]string, 0)
-
+	flag.Parse()
 	currentDir, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -55,7 +58,11 @@ func parseUrls(urls []string) map[string][]string {
 	m := make(map[string][]string)
 	for _, u := range urls {
 		parsedUrls, _ := url.Parse(u)
-		m[parsedUrls.Host] = append(m[parsedUrls.Host], parsedUrls.Host+parsedUrls.Path)
+		if *myflag {
+			m[parsedUrls.Host] = append(m[parsedUrls.Host], parsedUrls.String())
+		} else {
+			m[parsedUrls.Host] = append(m[parsedUrls.Host], parsedUrls.Host+parsedUrls.Path)
+		}
 	}
 	return m
 }
