@@ -8,70 +8,61 @@ import (
 	"os"
 )
 
-var myflag = flag.Bool("c", false, "print whole url")
-var myflag2 = flag.String("d", "/js", "init files dir")
+var originalUrl = flag.Bool("c", true, "Parses urls to return host and path if equals to false")
+var outputDir = flag.String("o", "/js", " output directory name")
 
 func main() {
-	urls := make([]string, 0)
 	flag.Parse()
 	currentDir, err := os.Getwd()
-	createDirectoryIfNotExistsInit(currentDir + "/" + *myflag2)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Could not get current working directory: %v", err)
 	}
+	urls := make([]string, 0)
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		urls = append(urls, scanner.Text())
 	}
 
-	if scanner.Err() != nil {
-		log.Fatalf("Could not find file")
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("Error reading from stdin: %v", err)
 	}
-
-	pu := parseUrls(urls)
-	for dirName, sortedUrlsBySub := range pu {
-		createDirectoryIfNotExists(currentDir + "/" + *myflag2 + "/" + dirName)
-		createFile(currentDir+"/"+*myflag2+"/"+dirName+"/"+dirName, sortedUrlsBySub)
+	parsedUrls := parseUrls(urls)
+	for dirName, sortedUrlsBySub := range parsedUrls {
+		dirPath := currentDir + "/" + *outputDir + "/" + dirName
+		filePath := dirPath + "/" + dirName + ".txt"
+		if err := createDirectoryAndFile(dirPath, filePath, sortedUrlsBySub); err != nil {
+			log.Fatalf("Error creating directory and file: %v", err)
+		}
 	}
-}
-
-func createDirectoryIfNotExists(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.MkdirAll(path, os.ModeDir|0755)
-	}
-	return nil
-}
-
-func createFile(path string, text []string) {
-	file, err := os.Create(path + ".txt")
-	if err != nil {
-		log.Fatalf("failed creating file: %s", err)
-	}
-
-	datawriter := bufio.NewWriter(file)
-	for _, data := range text {
-		_, _ = datawriter.WriteString(data + "\n")
-	}
-	datawriter.Flush()
-	file.Close()
 }
 
 func parseUrls(urls []string) map[string][]string {
-	m := make(map[string][]string)
+	data := make(map[string][]string)
 	for _, u := range urls {
 		parsedUrls, _ := url.Parse(u)
-		if *myflag {
-			m[parsedUrls.Host] = append(m[parsedUrls.Host], parsedUrls.String())
+		if *originalUrl {
+			data[parsedUrls.Host] = append(data[parsedUrls.Host], parsedUrls.String())
 		} else {
-			m[parsedUrls.Host] = append(m[parsedUrls.Host], parsedUrls.Host+parsedUrls.Path)
+			data[parsedUrls.Host] = append(data[parsedUrls.Host], parsedUrls.Host+parsedUrls.Path)
 		}
 	}
-	return m
+	return data
 }
 
-func createDirectoryIfNotExistsInit(dir string) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return os.MkdirAll(dir, os.ModeDir|0755)
+func createDirectoryAndFile(dir, file string, text []string) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
 	}
-	return nil
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	for _, data := range text {
+		if _, err := w.WriteString(data + "\n"); err != nil {
+			return err
+		}
+	}
+	return w.Flush()
 }
